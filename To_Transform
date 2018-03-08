@@ -1,0 +1,11 @@
+# The indices must be underscores
+# Dependencies must be enclosed in [], nothing else may be enclosed in square brackets.
+# Kets must be enclosed in \ket{ ... }
+# Bras must be enclosed in \bra{ ... }
+# Expansion coefficients must be enclosed in \coeff{ ... }
+# Sums must be enclosed in braces, indices should also be enclosed in these braces e.g. \sum{_l ... }.
+# Whether something is diabatic or adiabatic must be specified by using !adiab! or !diab! within the objects braces i.e. \ket{ ... !adiab!}
+
+\sum{_l \coeff{u_l!diab!} \bra{\psi_{l}[R,t]!diab!}|H|\ket{\psi_{k}[R,t]!adiab!} + \coeff{u_l!diab!}}
+- 
+\sum{_k \coeff{C_k!adiab!} \bra{\psi_{k}[R,t]!adiab!}}
