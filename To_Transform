@@ -9,4 +9,4 @@
 # Adiabatic coefficients are named C, basis functions are named \psi
 
 
-\coeff{u_l} \bra{\psi_l}
+\coeff{C_l}

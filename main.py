@@ -155,35 +155,29 @@ class SUM(MATH_OBJECTS):
         if "\\delta" in self.obj_typ:
             delta_I = self.obj_typ.index("\\delta")
             delta_inds = self.objs[delta_I].inds
-
             # Both the dirac delta's indices must be in the summation
             if not all(j in self.inds for j in delta_inds):
                 return
-
             # Won't currently work if other parent math objects are inside.
             # This is because it won't recursively change things, lower down.
             if any(i not in child_math_objects for i in self.obj_typ):
                 EXC.WARN("Sorry I currently can't cancel the dirac delta in the sum %s"%self.latex())
                 return
-
             # Finds the relevant math objects
             relevant_objs = [] # Holds all objects that have relevant indices
             for i, Typ in enumerate(self.obj_typ):
                 if Typ in child_math_objects:
                     if any(j in delta_inds for j in self.objs[i].inds) and "\\delta" not in Typ:
                         relevant_objs.append(self.objs[i])
-
             # Change any occurance of the first delta index to the second delta index
             self.inds = list(set([i.replace(delta_inds[1], delta_inds[0]) for i in  self.inds]))
             for obj in relevant_objs:
                 if delta_inds[1] in obj.inds:
                     obj.inds = [i.replace(delta_inds[1], delta_inds[0]) for i in obj.inds]
-
             # Remove the delta from the sum
             self.obj_typ = self.obj_typ[:delta_I] + self.obj_typ[delta_I+1:]
             self.combinators = self.combinators[:delta_I] + self.combinators[delta_I+1:]
             self.objs = self.objs[:delta_I] + self.objs[delta_I+1:]
-
             self._combine_coeff_conjs()
         else:
             return
@@ -263,10 +257,6 @@ class BRA(SUM):
         latex_str += "|"
         return latex_str
 
-    # Converts adiabatic bras to diabatic
-    def _adiab_2_diab(self):
-        pass
-
     # Converts diabatic bras to adiabatic
     def _diab_2_adiab(self):
         pass
@@ -307,7 +297,7 @@ class COEFF(BRA):
         self.txt = txt
         self.conj = self._find_conj(txt)
         self.pow = int(self._find_powers(txt))
-
+        
     # Converts the math object to latex code
     def latex(self):
         deps = ','.join(self.deps)
@@ -352,9 +342,14 @@ class COEFF(BRA):
             index = txt[txt.find('{')+1:end_ind]
         return index
 
-    # Converts adiabatic coeffs to diabatic
+    # Converts adiabatic bras to diabatic
     def _adiab_2_diab(self):
-        pass
+        if len(self.inds) > 1:
+            EXC.ERROR("More than 1 index on the bra %s"%self.txt)
+        ind = self.inds[0]
+        trans_txt = "{_X \\coeff{u_{X}[R,t]} \\U{_{%s,X}} }"%ind
+        return SUM(trans_txt)
+        #C_l = \sum\limits_{m}u_m U_{lm}
 
     # Converts diabatic coeffs to adiabatic
     def _diab_2_adiab(self):
@@ -371,10 +366,43 @@ class DELTA(BRA):
         inds = ",".join(self.inds)
         return "\\delta_{%s}"%inds
 
+class U(COEFF):
+    """ A Dirac delta object """
+
+    def __init__(self, txt):
+        self.txt = txt
+        self.inds = self._find_index(txt)[0]
+        self.conj = self._find_conj(txt)
+        if self.conj:
+            self.bra, self.ket = self._create_bra_ket_conj(self.inds)
+        else:
+            self.bra, self.ket = self._create_bra_ket(self.inds)
+    
+    # Creates the Bra and the Ket as part of the U matrix
+    def _create_bra_ket(self, inds):
+        if len(inds) != 2:
+            EXC.ERROR("The number of indices for the U matrix, %s, is %i it should be 2!"%(self.txt, len(inds)))
+        bra = BRA("{\phi_{%s}[R,t]}"%(inds[0]))
+        ket = KET("{\psi_{%s}[R,t]}"%(inds[1]))
+        return bra,ket
+    
+    # Creates the Bra and the Ket as part of the U matrix
+    def _create_bra_ket_conj(self, inds):
+        if len(inds) != 2:
+            EXC.ERROR("The number of indices for the U matrix, %s, is %i it should be 2!"%(self.txt, len(inds)))
+        bra = BRA("{\psi_{%s}[R,t]}"%(inds[1]))
+        ket = KET("{\phi_{%s}[R,t]}"%(inds[0]))
+        return bra,ket
+    
+    # Creates a string with LaTeX code for this object
+    def latex(self):
+        inds = ",".join(self.inds)
+        return "U_{%s}"%inds
+
 latex_with_deps = False
 
-valid_math_objects = {'\\sum':SUM,'\\coeff':COEFF,'\\ket':KET,'\\bra':BRA, "\\delta":DELTA}
-child_math_objects = {'\\coeff':COEFF,'\\ket':KET,'\\bra':BRA, "\\delta":DELTA}
+valid_math_objects = {'\\sum':SUM,'\\coeff':COEFF,'\\ket':KET,'\\bra':BRA, "\\delta":DELTA, "\\U":U}
+child_math_objects = {'\\coeff':COEFF,'\\ket':KET,'\\bra':BRA, "\\delta":DELTA, "\\U":U}
 
 transform_path = io.folder_correct("./To_Transform")
 transform_txt  = io.open_read(transform_path)
