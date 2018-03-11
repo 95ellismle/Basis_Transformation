@@ -10,7 +10,6 @@ from src import text as txt_lib
 from src import EXCEPT as EXC
 
 #import sympy as sp  # Use this to print things prettyily eventually (maybe to simplify certain bits too)
-import numpy as np
 import sys
 
 class MATH_OBJECTS(object):
@@ -21,8 +20,31 @@ class MATH_OBJECTS(object):
         self.txt = txt
         self.objs, self.combinators,self.obj_typ = self._find_math_objects(txt)
         self._combine_coeff_conjs()
+        self.struct = self._create_struct(self.objs, self.obj_typ)
+        print(self.struct)
+        
+    # Will recursively iterate over all items in an arbitrarily nested list
+    def _create_struct(self, lIst, obj_types, level=0, struct={}, levels={0:0}):
+        for i, item in enumerate(lIst):
+            if levels.get(level) == None:
+                levels[level] = 0
+            struct[(level,levels[level])] = item
+            levels[level] += 1
+            if obj_types[i] not in child_math_objects:
+                print(item)
+                new_list = item.objs
+                self._create_struct(new_list, item.obj_typ,level+1,struct,levels)
+        return struct
 
-    # Finds the outer layer of math objects
+    # Checks the text and sees whether it is the correct format (This need improving)
+    def _check_txt(self, txt, obj_type):
+        obj_type = obj_type[1:].title()
+        if obj_type == "\\sum":
+           tmp_txt = txt[txt.find('{'):]
+           if "_" != tmp_txt[1]:
+               EXC.WARN("Can't find any indices in the %s.\nTxt = %s"%(obj_type, txt))   
+
+    # Finds all the math objects in the text from the valid_math_objects dict
     def _find_math_objects(self, txt):
         objects = []
         combinators = []
@@ -30,17 +52,18 @@ class MATH_OBJECTS(object):
         count = 0
         while (txt.find("{") != -1 and txt.find("}") != -1):
             obj_txt, obj_type, start_ind, end_ind = self._find_first_enclosed_object(txt)
+            self._check_txt(txt, obj_type)
             obj = valid_math_objects[obj_type](obj_txt)
             combinator = txt[:start_ind]
             if combinator == "{" or combinator == "}":
                 combinator = ""
             if count > 1:
-                combinators.append(combinator.replace(combinators[count-1], ""))
+                combinators.append(combinator)
             else:
                 combinators.append(combinator)
             object_types.append(obj_type)
             objects.append(obj)
-            txt = txt[:start_ind]+txt[end_ind:]
+            txt = txt[:start_ind-len(combinator)]+txt[end_ind:]
             count += 1
         return objects,combinators, object_types
 
@@ -68,6 +91,7 @@ class MATH_OBJECTS(object):
             count = abs(count)
             if count == 0 and count2:
                 return i+1
+        EXC.WARN("Couldn't find the enclosing brace, txt = %s"%txt)
 
     # Simplifies an occurance of a repeated coefficient to a power.
     def _combine_coeff_conjs(self):
@@ -184,8 +208,8 @@ class SUM(MATH_OBJECTS):
 
     # Finds the index of a coefficients or bra/ket
     def _find_index(self, txt):
-        if txt.find('_') == -1:
-            return []
+        if "_" not  in txt:
+            EXC.WARN("Can't find any indices.\nTxt = %s"%txt)
         txt = txt[txt.find('_'):]
         if txt[1] != '{':
             end_ind = 2
@@ -413,4 +437,4 @@ if not len(transform_txt):
     sys.exit()
     
 math_objs = MATH_OBJECTS(transform_txt)
-print("\n",math_objs.latex())
+#print("\n",math_objs.latex())

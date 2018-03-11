@@ -9,4 +9,4 @@
 # Adiabatic coefficients are named C, basis functions are named \psi
 
 
-\coeff{C_l}
+\sum{_l \sum{_k \coeff{u_k}} + \sum{_l \coeff{u_l} } } + \sum{_l \sum{_k \coeff{u_k}} + \sum{_l \coeff{u_l} } }  + \coeff{u_k}
