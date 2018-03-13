@@ -18,24 +18,115 @@ class MATH_OBJECTS(object):
 
     def __init__(self, txt):
         self.txt = txt
+        self.child = False
+        self.__name__ = self.__class__.__name__
         self.objs, self.combinators,self.obj_typ = self._find_math_objects(txt)
         self._combine_coeff_conjs()
-        self.struct = self._create_struct(self.objs, self.obj_typ)
-        print(self.struct)
-        
-    # Will recursively iterate over all items in an arbitrarily nested list
-    def _create_struct(self, lIst, obj_types, level=0, struct={}, levels={0:0}):
+        self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ)    
+        self.paths  = self._create_paths(self.objs)
+        self._merge_nested_sums()
+    
+    # Will follow the path that is in the path dictionary and find the math object.
+    def _follow_path(self, path):
+        x = self.objs
+        count = 0
+        for i in path:
+            if i < len(x):
+                if x[i].child:
+                    if count == len(path)-1:
+                        return x[i]
+                    else:
+                        print("Can't find path %s, the path length is too long.\nThe chain of math objects isn't as long as the amount of indices in the path)"%path)
+                else:
+                    if count == len(path)-1:
+                        return x[i]
+                    x = x[i].objs
+            else:
+                print("Can't find path %s"%str(path))
+                return False
+            count += 1
+            
+    # Will recursively iterate over all objects in the self.objs list and find the parents and children.
+    def _create_struct(self, lIst, obj_types, parent="root", level=0, struct={}, levels={0:0}, names={}):
+        if len(lIst) != len(obj_types):
+            EXC.WARN("%s._create_struct has a different number of objects and object types.\n\tobj_types = %s\n\tobjs = %s"%(self.__name__, str(obj_types), str(lIst)))
         for i, item in enumerate(lIst):
+            if parent == "root":
+                parent = self
             if levels.get(level) == None:
                 levels[level] = 0
-            struct[(level,levels[level])] = item
+            if struct.get(level)  == None:
+                struct[level] = []
+                names[level] = []
+            struct[level].append((item, parent))
+            names[level].append(item.__name__)
             levels[level] += 1
             if obj_types[i] not in child_math_objects:
-                print(item)
                 new_list = item.objs
-                self._create_struct(new_list, item.obj_typ,level+1,struct,levels)
-        return struct
+                self._create_struct(new_list, item.obj_typ, item, level+1,struct,levels, names)
+        return struct, names
 
+    # Will create a dictionary with the path to each object in the struct dictionary
+    def _create_paths(self, lIst, parent_i=0, level=0, paths={}):
+        for i, item in enumerate(lIst):
+            if paths.get(level)  == None:
+                paths[level] = []
+            if level == 0:
+                paths[0] = [[i] for i in range(len(self.objs))]  
+            else:
+                paths[level].append(paths[level-1][parent_i]+[i])
+            if not item.child:
+                new_list = item.objs
+                self._create_paths(new_list, i, level+1, paths)
+        return paths
+    
+    # Re-writes the parent summations with multiple child summations as multiple parent summations with 1 child.
+    def _one_child_parent_sums(self):
+        for level in self.struct:
+            for i, (child,parent) in enumerate(self.struct[level]):
+                if child.__name__ == "SUM":
+                    if child.obj_typ.count("\\sum") > 1:
+                        grandchildren_to_adopt = []
+                        grandchildren_combinators = []
+                        adopted_grandchildren_indices = []
+                        for i, grandchlid in enumerate(child.objs):
+                            if i != 0 and grandchlid.__name__ == "SUM":
+                                grandchildren_to_adopt.append(grandchlid)
+                                grandchildren_combinators.append(child.combinators[i])
+                                adopted_grandchildren_indices.append(i)
+                            else:
+                                continue
+                        for grandchild,comb,i in zip(grandchildren_to_adopt,grandchildren_combinators,adopted_grandchildren_indices):
+                            new_sum = SUM("{_{%s}}"%(','.join(child.inds)))
+                            new_sum.objs = [grandchild]
+                            new_sum.obj_typ = ["\\sum"]
+                            new_sum.combinators = [""]
+                            parent._insert_obj(len(parent.objs)+1, new_sum, "\\sum", comb)
+                        count = 0
+                        for index in sorted(adopted_grandchildren_indices):
+                            child._remove_obj(index-count)
+                            count += 1    
+        self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ, parent="root", level=0, struct={}, levels={0:0}, names={})    
+        self.paths  = self._create_paths(self.objs, parent_i=0, level=0, paths={})
+
+    # Will combine nested sums into single sums with just 1 summation sign. This will  merge any parent sums into the child and the delete the parent.
+    def _merge_nested_sums(self):
+        self._one_child_parent_sums()
+        level = 0
+        add_level = True
+        while (level <= max(self.struct.keys())):
+            for i, (child,parent) in enumerate(self.struct[level]):
+                if child.__name__ == "SUM" and child.__name__ == parent.__name__:
+                    [child.inds.append(i) for i in parent.inds] # Merge the parent's indices with the child
+                    self.objs[self.paths[level][i][-2]] = child # Replace the parent with the child
+                    add_level = False
+                    self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ, parent="root", level=0, struct={}, levels={0:0}, names={})    
+                    self.paths  = self._create_paths(self.objs, parent_i=0, level=0, paths={})
+            if add_level:
+                level += 1
+            else:
+                level = 0
+                add_level= True
     # Checks the text and sees whether it is the correct format (This need improving)
     def _check_txt(self, txt, obj_type):
         obj_type = obj_type[1:].title()
@@ -137,9 +228,9 @@ class MATH_OBJECTS(object):
 
     # Removes an object from combinators, obj_typ and objs
     def _remove_obj(self, i):
-        self.combinators.remove(self.combinators[i])
-        self.objs.remove(self.objs[i])
-        self.obj_typ.remove(self.obj_typ[i])
+        self.combinators = self.combinators[:i] + self.combinators[i+1:]
+        self.objs = self.objs[:i] + self.objs[i+1:]
+        self.obj_typ = self.obj_typ[:i] + self.obj_typ[i+1:]
 
     # Converts bra-ket pair with the same name to a dirac delta (Assuming orthogonality)
     def _find_deltas(self):
@@ -170,6 +261,8 @@ class SUM(MATH_OBJECTS):
 
     def __init__(self, txt):
         self.inds, self.txt = self._find_index(txt)
+        self.child = False
+        self.__name__ = self.__class__.__name__
         self.objs, self.combinators,self.obj_typ = self._find_math_objects(self.txt)
         self._simplify_delta()
 
@@ -239,6 +332,8 @@ class BRA(SUM):
 
     def __init__(self, txt):
         self.txt = txt
+        self.child = True
+        self.__name__ = self.__class__.__name__
         self.a_or_d = self._find_adiab_or_diab(txt)
         self.name = self._find_var_name(txt)
         self.deps = self._find_dependencies(txt)
@@ -322,21 +417,6 @@ class COEFF(BRA):
         self.conj = self._find_conj(txt)
         self.pow = int(self._find_powers(txt))
         
-    # Converts the math object to latex code
-    def latex(self):
-        deps = ','.join(self.deps)
-        inds = ','.join(self.inds)
-        latex_str = " %s"%self.name
-        if self.pow > 1:
-            latex_str += "^{%s}"%self.pow
-        if inds:
-            latex_str += "_{%s}"%(inds)
-        if deps and latex_with_deps:
-            latex_str += "(%s)"%(deps)
-        if self.conj:
-            latex_str += "^{*}"
-        return latex_str
-
     # Finds whether the coefficient should be treated as the conjugate
     def _find_conj(self, txt):
         if "*" in txt:
@@ -378,6 +458,21 @@ class COEFF(BRA):
     # Converts diabatic coeffs to adiabatic
     def _diab_2_adiab(self):
         pass
+    
+    # Converts the math object to latex code
+    def latex(self):
+        deps = ','.join(self.deps)
+        inds = ','.join(self.inds)
+        latex_str = " %s"%self.name
+        if self.pow > 1:
+            latex_str += "^{%s}"%self.pow
+        if inds:
+            latex_str += "_{%s}"%(inds)
+        if deps and latex_with_deps:
+            latex_str += "(%s)"%(deps)
+        if self.conj:
+            latex_str += "^{*}"
+        return latex_str
 
 class DELTA(BRA):
     """ A Dirac delta object """
@@ -391,7 +486,7 @@ class DELTA(BRA):
         return "\\delta_{%s}"%inds
 
 class U(COEFF):
-    """ A Dirac delta object """
+    """ A transformation matrix object """
 
     def __init__(self, txt):
         self.txt = txt
@@ -437,4 +532,4 @@ if not len(transform_txt):
     sys.exit()
     
 math_objs = MATH_OBJECTS(transform_txt)
-#print("\n",math_objs.latex())
+print("\n",math_objs.latex())
