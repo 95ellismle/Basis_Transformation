@@ -11,8 +11,17 @@ from src import EXCEPT as EXC
 
 #import sympy as sp  # Use this to print things prettyily eventually (maybe to simplify certain bits too)
 import sys
+import os
 
-steps_taken = ''
+steps_taken = '''\\documentclass[12pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[english]{babel}
+\\usepackage{amsmath}
+\\usepackage{amsfonts}
+\\usepackage{amssymb}
+\\usepackage{breqn}
+\\usepackage{graphicx}
+\\begin{document}'''
 begin_eq = "\\begin{dmath*}\n"
 end_eq   = "\n\\end{dmath*}"
 
@@ -26,7 +35,7 @@ class MATH_OBJECTS(object):
         self.child = False
         self.__name__ = self.__class__.__name__
         self.objs, self.combinators,self.obj_typ = self._find_math_objects(txt)
-        steps_taken += "Original Equation was:\n\n%s%s%s]\n\n"%(begin_eq, self.latex(), end_eq)
+        steps_taken += "Original Equation was:\n\n%s%s%s\n\n"%(begin_eq, self.latex(), end_eq)
         # Simplifying
         #self._combine_coeff_conjs()  #This needs work.
         self._merge_nested_sums()
@@ -119,7 +128,7 @@ class MATH_OBJECTS(object):
         self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ, parent="root", level=0, struct={}, levels={0:0}, names={})    
         self.paths  = self._create_paths(self.objs, parent_i=0, level=0, paths={})
         if self.latex() != orig_latex:
-            steps_taken += "Split the sums to create 1 child parent sum:\n\n%s%s%s]\n\n"%(begin_eq, self.latex(), end_eq)
+            steps_taken += "Split summations with multiple nesting into multiple parent sums and 1 child:\n\n%s%s%s\n\n"%(begin_eq, self.latex(), end_eq)
 
 
     # Returns a list of lists containing items that are in between the indices provided
@@ -157,15 +166,15 @@ class MATH_OBJECTS(object):
                     for objI in NEW_OBJS:
                         count += 1
                         parent._insert_obj(len(parent.objs)+1, NEW_OBJS[objI], "\\sum", " + ")
+
             if count > 0:
                 for i in range(0,len(parent.objs)-count):
                     parent._remove_obj(0)
+        if self.latex() != orig_latex:
+            steps_taken += "Split summations with a + or - in (this is a code thing rather than a maths thing):\n\n%s%s%s\n\n"%(begin_eq, self.latex(), end_eq)
         self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ, parent="root", level=0, struct={}, levels={0:0}, names={})    
         self.paths  = self._create_paths(self.objs, parent_i=0, level=0, paths={})
         self._simplify_U()
-        if self.latex() != orig_latex:
-            steps_taken += "Split the sums to create 1 child parent sum:\n\n%s%s%s]\n\n"%(begin_eq, self.latex(), end_eq)
-
     
     # Will remove any sums without any indices
     def _remove_empty_sums(self):
@@ -179,6 +188,7 @@ class MATH_OBJECTS(object):
     
     # Will simplify the U transformation matricies by removing indices from the sum and making a dirac delta
     def _simplify_U(self):
+       global steps_taken
        for level in self.struct: 
           for i, (child,parent) in enumerate(self.struct[level]):
               if child.__name__ == "SUM":
@@ -197,10 +207,15 @@ class MATH_OBJECTS(object):
                            child._remove_obj(x-count)
                            count += 1
                         child._insert_obj(len(child.objs)+1, new_delta, "\\delta", "")
+                        LaTeX = self.latex()
+                        steps_taken += "Simplifying the U terms using the relationship $\\sum\\limits_{x}U^{*}_{bx}U_{ax} = \delta_{ab}$:\n\n%s%s%s\n\n"%(begin_eq, LaTeX, end_eq)
                         for ind in indices:
                             child.inds = [j for j in child.inds if j != ind]
                 child._simplify_deltas()
-       #self._remove_empty_sums()
+       latex_str = self.latex()
+       if latex_str != LaTeX:
+         steps_taken += "Let them Kronecker deltas work their magic: %s%s%s"%(begin_eq, latex_str, end_eq)
+   #self._remove_empty_sums()
                                 
        self.struct, self.struct_names = self._create_struct(self.objs, self.obj_typ, parent="root", level=0, struct={}, levels={0:0}, names={})    
        self.paths  = self._create_paths(self.objs, parent_i=0, level=0, paths={})
@@ -390,14 +405,16 @@ class SUM(MATH_OBJECTS):
             new_inds = [i for i in new_inds if i != 'D']
         for obj in relevant_objs:
             if delta_inds[1] in obj.inds:
-                obj.inds = [i.replace(delta_inds[0], delta_inds[1]) for i in obj.inds]
+                obj.inds = [i.replace(delta_inds[0], delta_inds[1]) for i in obj.inds]        
         return new_inds
 
     # Will let a single kronecker delta do it's thing in a sum. Takes the index of the delta as a argument
     def _simplify_1_delta(self, delta_I):
+        print(self.latex(), "\n\n")
         delta_inds = self.objs[delta_I].inds
         new_inds = self._simplify_1_delta_with_indices(delta_inds)
         # Remove the delta from the sum
+        print(self.latex())
         if new_inds != self.inds: # Something has changed
             self.inds = new_inds
             self._remove_obj(delta_I)
@@ -709,4 +726,17 @@ if not len(transform_txt):
     sys.exit()
     
 math_objs = MATH_OBJECTS(transform_txt)
-print("\n",steps_taken)
+
+steps_taken += "\end{document}"
+
+#tex_folderpath = io.folder_correct('./steps')
+#tex_filepath = tex_folderpath + "steps.tex"
+#io.open_write(tex_filepath, steps_taken)
+#os.system("%smake_tex --output-directory='%s'"%(tex_folderpath,tex_folderpath))
+#latex_cmd = "pdflatex --output-directory='%s'"%tex_folderpath
+#os.system("%s %s"%(latex_cmd, tex_filepath))
+
+#unneeded_tex = ['.aux','.log']
+#del_files = [i for i in os.listdir(tex_folderpath) if any(j in i for j in unneeded_tex)]
+#for i in del_files:
+#    os.remove(i)
