@@ -9,4 +9,4 @@
 # Adiabatic coefficients are named C, basis functions are named \psi
 
 
-\sum{_{k,z,n,m} \U{_{l,k} *} \U{_{m,k}}\U{_{m,z} *} \U{_{n,z}} \coeff{u_n} + \coeff{u_k}} + \sum{_k \coeff{u_k [R,t]} \U{_{p,k} *} \U{_{s,k} }}
+\sum{_k_{k,z,n,m} \U{_{m,z} *} \U{_{n,z}} \coeff{u_n} + \coeff{u_k}}

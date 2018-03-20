@@ -1,0 +1,38 @@
+<html>
+
+<head>
+  <!-- LaTeX stuff -->
+  <script type="text/javascript" src="http://latex.codecogs.com/latexit.js"></script>
+</head>
+
+
+<h1>Transform Equation</h1>
+
+<form method="POST">
+{% csrf_token %}
+  <input type='text' name="equation_in" placeholder="Insert Equation Here"></input>
+</form>
+
+{% if print_eq %}
+<h4>  Equation in: </h4>
+<div lang='latex'>
+{{ eq_in }}
+</div>
+<h3> {{ test }} </h3>
+
+<ul>
+  {% for step,step_text in steps %}
+    <h5> {{ step_text }} </h5>
+    <li>
+      <div lang='latex'>
+        {{ step }}
+      </div>
+    </li>
+  {% endfor %}
+</ul>
+
+{% endif %}
+
+
+
+</html>

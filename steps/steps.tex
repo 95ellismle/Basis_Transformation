@@ -9,36 +9,24 @@
 \begin{document}Original Equation was:
 
 \begin{dmath*}
-\sum\limits_{k,z,n,m} \left[ U_{l,k} U_{m,k}U_{m,z}U_{n,z} u_{n}+ u_{k}\right]+
-\sum\limits_{k}   u_{k} U_{p,k}U_{s,k}
+\sum\limits_{k,z,n,m} \left[ U_{m,z} U_{n,z} u_{n}+ u_{k}\right]
 \end{dmath*}
 
 Split summations with a + or - in (this is a code thing rather than a maths thing):
 
 \begin{dmath*}
-\sum\limits_{k,z,n,m}  U_{l,k} U_{m,k}U_{m,z}U_{n,z} u_{n}+
-\sum\limits_{k,z,n,m}   u_{k} +
-\sum\limits_{k}   u_{k} U_{p,k}U_{s,k}
+\sum\limits_{k,z,n,m}  U_{m,z} U_{n,z} u_{n}+
+\sum\limits_{k,z,n,m}   u_{k} 
 \end{dmath*}
 
 Simplifying the U terms using the relationship $\sum\limits_{x}U^{*}_{bx}U_{ax} = \delta_{ab}$:
 
 \begin{dmath*}
-\sum\limits_{k,z,n,m}  U_{m,z} U_{n,z} u_{n}\delta_{l,m}+
-\sum\limits_{k,z,n,m}   u_{k} +
-\sum\limits_{k}   u_{k} U_{p,k}U_{s,k}
-\end{dmath*}
-
-Simplifying the U terms using the relationship $\sum\limits_{x}U^{*}_{bx}U_{ax} = \delta_{ab}$:
-
-\begin{dmath*}
-\sum\limits_{n,m}   u_{n} \delta_{l,m}\delta_{m,n}+
-\sum\limits_{k,z,n,m}   u_{k} +
-\sum\limits_{k}   u_{k} U_{p,k}U_{s,k}
+\sum\limits_{k,z,n,m}   u_{n} \delta_{m,n}+
+\sum\limits_{k,z,n,m}   u_{k} 
 \end{dmath*}
 
 Let them Kronecker deltas work their magic: \begin{dmath*}
-\sum\limits_{m,l}   u_{n} +
-\sum\limits_{k,z,n,m}   u_{k} +
-\sum\limits_{k}   u_{k} U_{p,k}U_{s,k}
-\end{dmath*}\end{document}
+\sum\limits_{k,n}   u_{n} +
+\sum\limits_{k,z,n,m}   u_{k} 
+\end{dmath*}
