@@ -1,0 +1,18 @@
+#err_msg {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#err_msg td, #err_msg th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#err_msg th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: rgb(255,0,0);
+    color: white;
+}

@@ -30,7 +30,8 @@ if not len(transform_txt):
     print("Can't find any text")
     sys.exit()
 
-Transform("\sum{_k}")
+Transform("\sum{_k \delta_{jk}}")
+
 
 #tex_folderpath = io.folder_correct('./steps')
 #tex_filepath = tex_folderpath + "steps.tex"

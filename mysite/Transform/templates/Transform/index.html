@@ -1,36 +1,63 @@
 {% extends "Transform/header.html" %}
 
 {% block content %}
-<h1>Transform Equation</h1>
 
-<form method="POST">
-{% csrf_token %}
-  <input type='text' name="equation_in" placeholder="Insert Equation Here"></input>
-</form>
+<div class="container">
 
-{% if print_eq %}
-<h4>  Equation in: </h4>
-<div lang='latex'>
-{{ eq_in }}
+  <h1>Transform Equation</h1>
+
+  <form method="POST">
+  {% csrf_token %}
+    <input type='text' name="equation_in" placeholder="Insert Equation Here"></input>
+  </form>
+
+  {% if print_eq %}
+  <h4>  Equation in: </h4>
+  \[ {{ eq_in }} \]
+
+
+
+  {% if print_steps %}
+  <h3>Steps:</h3>
+  <ol>
+    {% for step,step_text in steps %}
+      <h5> {{ step_text }} </h5>
+      <li>
+        \[ {{ step }} \]
+      </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  {% else %}
+  <br />
+  <br />
+  <hr />
+  <h4>Error</h4>
+  <strong>Inputted text = </strong>{{ eq_in }}
+  <h5>Errors found:</h5>
+  <table id="err_msg">
+    <tr>
+      <th></th>
+      <th>
+        Errors found
+      </th>
+    </tr>
+    {% for num, err in error_msg %}
+    <tr>
+      <td style="text-align: center;">
+         {{ num }}
+      </td>
+      <td style="text-align: left;">
+          {{ err }}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+
+  {% endif %}
 </div>
-
-{% if print_steps %}
-<ul>
-  {% for step,step_text in steps %}
-    <h5> {{ step_text }} </h5>
-    <li>
-      <div lang='latex'>
-        {{ step }}
-      </div>
-    </li>
-  {% endfor %}
-</ul>
-{% endif %}
-
-{% else %}
-<h4>Error:</h4>
-{{ eq_in }}
-{% endif %}
 
 
 {% endblock %}

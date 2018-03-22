@@ -16,4 +16,5 @@ class Transform(object):
         steps_taken = ""
         begin_eq = "**#"
         end_eq = ""
-        self.eq = MO.MATH_OBJECTS(equation_in, steps_taken, begin_eq, end_eq)
+        self.errors = {}
+        self.eq = MO.MATH_OBJECTS(equation_in, self.errors, steps_taken, begin_eq, end_eq)
