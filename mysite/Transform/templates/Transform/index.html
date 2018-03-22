@@ -1,11 +1,6 @@
-<html>
+{% extends "Transform/header.html" %}
 
-<head>
-  <!-- LaTeX stuff -->
-  <script type="text/javascript" src="http://latex.codecogs.com/latexit.js"></script>
-</head>
-
-
+{% block content %}
 <h1>Transform Equation</h1>
 
 <form method="POST">
@@ -18,8 +13,8 @@
 <div lang='latex'>
 {{ eq_in }}
 </div>
-<h3> {{ test }} </h3>
 
+{% if print_steps %}
 <ul>
   {% for step,step_text in steps %}
     <h5> {{ step_text }} </h5>
@@ -30,9 +25,12 @@
     </li>
   {% endfor %}
 </ul>
+{% endif %}
 
+{% else %}
+<h4>Error:</h4>
+{{ eq_in }}
 {% endif %}
 
 
-
-</html>
+{% endblock %}
